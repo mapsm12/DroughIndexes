@@ -1,1 +1,0 @@
-# Índices de Sequía
