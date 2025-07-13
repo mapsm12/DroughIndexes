@@ -1,129 +1,126 @@
-# Metodología para el cálculo del índice de sequía scPDSI
+# Methodology for Calculating the scPDSI Drought Index
 
-Este repositorio implementa una adaptación en Python del algoritmo original del **Self-Calibrating Palmer Drought Severity Index (scPDSI)**, diseñado para evaluar déficits hídricos prolongados considerando las condiciones climáticas locales.
-
-El código fue adaptado por Miguel Andrade a partir del trabajo desarrollado originalmente por Dimitris Herrera.
+This repository contains a Python implementation of the **Self-Calibrating Palmer Drought Severity Index (scPDSI)** algorithm, adapted from the original work developed by Dimitris Herrera. The implementation was modified by Miguel Andrade for flexible use in research and climate analysis.
 
 ---
 
-## 1. Descripción general
+## 1. Overview
 
-El índice **scPDSI** es una versión auto-calibrada del índice PDSI tradicional. Permite detectar eventos de sequía y pluviales en una escala estandarizada, con calibración automática a las condiciones climáticas locales. El cálculo considera:
+The **scPDSI** is a self-calibrated version of the traditional Palmer Drought Severity Index. It standardizes the detection of dry and wet periods across different climates by dynamically adjusting calibration parameters based on local conditions. Inputs include:
 
-- Precipitación mensual (mm)
-- Evapotranspiración potencial (PET) mensual (mm)
-- Capacidad de retención de agua disponible del suelo (AWC, en pulgadas)
-- Periodo de calibración climática
-
----
-
-## 2. Estructura de la metodología
-
-### 2.1. Cálculo del Balance Hídrico Mensual
-
-Se calcula la relación entre la precipitación y la evapotranspiración potencial para estimar:
-
-- Evapotranspiración real (ET)
-- Recarga del suelo (R)
-- Pérdida de agua (L)
-- Escorrentía (RO)
-- Humedad en capas superficial y profunda del suelo (SS y SU)
-
-> Función: `WaterBalance()`
+- Monthly precipitation (mm)
+- Monthly potential evapotranspiration (PET, mm)
+- Soil available water capacity (AWC, inches)
+- A defined calibration period
 
 ---
 
-### 2.2. Cálculo de variables potenciales
+## 2. Methodology Structure
 
-Se estiman los valores potenciales de:
+### 2.1. Monthly Water Balance Calculation
 
-- Recarga (`pr`)
-- Pérdida (`pl`)
-- Escorrentía (`pro`)
+The water balance is computed to estimate:
 
-> Función: `potentials()`
+- Actual evapotranspiration (ET)
+- Soil moisture recharge (R)
+- Water loss (L)
+- Runoff (RO)
+- Soil moisture in surface and lower layers (SS and SU)
 
----
-
-### 2.3. Cálculo del índice de anomalía de humedad Z
-
-A partir del balance hídrico y las variables CAFEC (Climatically Appropriate For Existing Conditions), se calcula:
-
-- Precipitación esperada (`Phat`)
-- Déficit de humedad (`d`)
-- Coeficientes climáticos (`k`)
-- Índice Z
-
-> Función: `Z_index()`
+> Function: `WaterBalance()`
 
 ---
 
-### 2.4. Factores de duración (dry/wet spells)
+### 2.2. Potential Values Calculation
 
-Se determinan relaciones lineales entre la duración y severidad de eventos secos y húmedos, usando:
+Based on the water balance, the model estimates:
 
-- Mínimos/máximos de sumatorias de `Z` por tramos
-- Ajustes de regresión lineal
+- Potential recharge (`pr`)
+- Potential runoff (`pro`)
+- Potential water loss (`pl`)
 
-> Función: `DurFact()`
-
----
-
-### 2.5. Cálculo del índice PDSI final
-
-Se generan los índices:
-
-- `X1`, `X2`, `X3`: componentes de seguimiento del estado de sequía/pluvial
-- `X`: índice final `scPDSI` ajustado
-- `Z`: segunda aproximación de la anomalía de humedad con nueva calibración
-
-> Funciones: `CalcPDSI()`, `CalcX()`, `SelectX()`
+> Function: `potentials()`
 
 ---
 
-## 3. Consideraciones de entrada
+### 2.3. Z Moisture Anomaly Index Calculation
 
-- **Unidad de datos**:
-  - Si se usan datos de modelos climáticos (`kg/m²/s`), se convierten a mm
-  - PET puede ingresarse como tasas diarias o mensuales
-- **Unidad estándar de cálculo**:
-  - Todos los datos se convierten a **pulgadas/mes**
+Using CAFEC (Climatically Appropriate For Existing Conditions) values, the function computes:
 
-> Conversión y ajuste en: `pdsi_wrapper()`
+- Expected precipitation (`Phat`)
+- Moisture departure (`d`)
+- Climatic coefficients (`k`)
+- Z index
 
----
-
-## 4. Aplicación espacial
-
-El script incluye funciones adaptadas para aplicar el scPDSI a grillas de datos 3D (latitud, longitud, tiempo), permitiendo el análisis espacial del índice.
+> Function: `Z_index()`
 
 ---
 
-## 5. Aplicación temporal anual (opcional)
+### 2.4. Duration Factors for Dry/Wet Events
 
-También se incluye una versión adaptada para trabajar con valores agregados **anualmente**, útil para comparar tendencias de sequía interanual.
+Linear relationships between event **duration** and **severity** are derived by:
 
-> Función: `pdsi_wrapper_annual()`
+- Summing `Z` over various lengths
+- Fitting regression lines separately for dry and wet periods
+
+> Function: `DurFact()`
 
 ---
 
-## 6. Requisitos
+### 2.5. Final PDSI Computation
+
+The index computation involves:
+
+- Generating time series of `X1`, `X2`, and `X3` (state variables)
+- Deriving the final scPDSI index `X`
+- Recalculating `Z` using calibrated scaling
+
+> Functions: `CalcPDSI()`, `CalcX()`, `SelectX()`
+
+---
+
+## 3. Input Considerations
+
+- **Data Units**:
+  - If using climate model outputs in `kg/m²/s`, they are converted to `mm`
+  - PET can be provided as daily or monthly values
+- **Standard Unit**:
+  - All calculations are internally converted to **inches per month**
+
+> Conversion handled inside: `pdsi_wrapper()`
+
+---
+
+## 4. Spatial Application
+
+The script can be applied over 3D gridded data (lat, lon, time), enabling regional or global drought analysis.
+
+---
+
+## 5. Annual Aggregation (Optional)
+
+An additional wrapper is included to compute **annual scPDSI values**, useful for interannual trend analysis and summary reporting.
+
+> Function: `pdsi_wrapper_annual()`
+
+---
+
+## 6. Requirements
 
 - Python 3.8+
-- Librerías: `numpy`, `scipy`, `xarray` (para uso espacial)
+- Dependencies: `numpy`, `scipy`, and optionally `xarray` for spatial operations
 
 ---
 
-## 7. Créditos
+## 7. Credits
 
-- Código base: Dimitris Herrera, Cornell University
-- Adaptación y documentación: Miguel Andrade
+- Original code: Dimitris Herrera, Cornell University
+- Adaptation and documentation: Miguel Andrade
 
 ---
 
-## Referencias
+## References
 
-- Palmer, W.C. (1965). Meteorological Drought. Research Paper No. 45, U.S. Weather Bureau.
-- Wells, N., Goddard, S., Hayes, M. J. (2004). A Self-Calibrating Palmer Drought Severity Index.
-
+- Palmer, W.C. (1965). *Meteorological Drought*. Research Paper No. 45, U.S. Weather Bureau.
+- Wells, N., Goddard, S., Hayes, M. J. (2004). *A Self-Calibrating Palmer Drought Severity Index*.
 
